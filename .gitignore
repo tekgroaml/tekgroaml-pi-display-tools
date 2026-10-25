@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+test-artifacts/
+
+# Per-host files must be generated on the destination Raspberry Pi.
+.env
+.env.*
+!.env.example
+private/
+local/
+config.json
+touch-map.json
+runtime.json
+*.log
+*.edid

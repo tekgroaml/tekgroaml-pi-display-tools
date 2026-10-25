@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Pi HDMI saved mode restore
+Exec=/usr/local/bin/screen-config restore --wait 60
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

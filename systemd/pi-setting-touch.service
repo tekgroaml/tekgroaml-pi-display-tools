@@ -1,0 +1,15 @@
+[Unit]
+Description=USB-path-bound touch device names for identical controllers
+After=systemd-udev-trigger.service
+Before=display-manager.service
+
+[Service]
+Type=simple
+Environment=PYTHONPATH=/opt/pi-setting/src
+ExecStartPre=/sbin/modprobe uinput
+ExecStart=/usr/bin/python3 -m pi_setting.touch_relay
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical.target
