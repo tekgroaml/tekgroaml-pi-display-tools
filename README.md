@@ -33,6 +33,7 @@ Checks compare the installed application with an already downloaded release; no 
 3. [验证记录](docs/03-验证记录.md)
 4. [触摸测试与双屏映射](docs/04-触摸测试与双屏映射.md)
 5. [版本管理与升级](docs/05-版本与升级.md)
+6. [6.2英寸长条触摸样机兼容档及限制](docs/06-6.2英寸长条屏.md)
 
 ```bash
 sudo bash scripts/install.sh

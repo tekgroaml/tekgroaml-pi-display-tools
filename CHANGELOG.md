@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.2.0 — 2026-10-25
+
+- Add the guarded `ltm-420x960-60` profile: keep the known 420x960 timing and change pixel clock from 28MHz to 32.4MHz for 60Hz.
+- Require `--confirm-profile` because touch and unresolved non-touch samples report identical EDID data; matching does not identify the physical product variant.
+- Validate known controller, descriptors and timing; preserve extension blocks, per-unit identity and existing 720-profile behavior.
+- Support explicit saved acknowledgment and identity-bound boot restoration, manual reset via `auto --save`, and prior-override restoration when mode selection fails.
+- Acknowledge identical manually tested overrides only after explicit confirmation; do not take ownership of unrelated overrides.
+- Add Chinese/English product instructions in the support repository. The non-touch sample was not fixed; new CLI cold-start behavior still requires hardware validation.
+
 ## 2.1.0 — 2026-10-25
 
 - Add a single `VERSION.json` release manifest for application, command and configuration versions.

@@ -7,10 +7,17 @@ from .config_cli import change_override
 
 def main():
     entries = store.load()['ports']
-    profiles = {p: item for p, item in entries.items() if item.get('profile') == edid.PROFILE}
+    profiles = {p: item for p, item in entries.items() if item.get('profile')}
     failed = False
     for key, item in profiles.items():
         port = int(key)
+        profile = item['profile']
+        try:
+            edid.validate_profile_use(profile, item.get('profile_confirmed', False))
+        except Exception as error:
+            failed = True
+            print(f'Screen {port+1}: saved profile skipped: {error}', file=sys.stderr)
+            continue
         # Wait for KMS enumeration, not for a disconnected monitor to appear indefinitely.
         for attempt in range(15):
             try:
@@ -30,7 +37,7 @@ def main():
                 print(f'HDMI{port}: display identity changed; profile skipped.')
                 continue
             with store.locked():
-                change_override(port, edid.corrected(raw), desktop=False)
+                change_override(port, edid.corrected(raw, profile), desktop=False)
             print(f'HDMI{port}: saved compatibility profile applied.')
         except Exception as error:
             failed = True

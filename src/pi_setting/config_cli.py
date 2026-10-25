@@ -29,7 +29,9 @@ def build_parser():
         if action == 'set':
             command.add_argument('--mode', required=True, help='Example: 800x800@60')
         if action == 'apply':
-            command.add_argument('--profile', choices=(edid.PROFILE,), required=True)
+            command.add_argument('--profile', choices=tuple(edid.PROFILES), required=True)
+            command.add_argument('--confirm-profile', action='store_true',
+                                 help='Acknowledge the selected profile product limits; does not bypass EDID checks')
     restore = commands.add_parser('restore', help='Restore saved modes in the logged-in desktop')
     restore.add_argument('--wait', type=int, default=0)
     return parser
@@ -75,6 +77,7 @@ def change_override(port, replacement, *, desktop=True):
     if not owned_override(port, previous):
         raise UserError('Unrecognized EDID override on this port; refusing to remove another tool\'s configuration.')
     if previous == replacement and replacement:
+        record_override(port, replacement)
         return
     path = edid.connector(port)
     archive = store.STATE / 'backups' / (datetime.now().strftime('%Y%m%d-%H%M%S-%f') + f'-port{port}')
@@ -152,6 +155,8 @@ def restore_saved(wait=0):
                     print(f'HDMI{port}: different screen; saved mode skipped.')
                     pending.pop(key)
                     continue
+                if item.get('profile'):
+                    edid.validate_profile_use(item['profile'], item.get('profile_confirmed', False))
                 result = outputs.set_mode(port, item.get('mode'))
                 print(f'HDMI{port}: restored {outputs.format_mode(result)}')
                 pending.pop(key)
@@ -168,6 +173,8 @@ def main(argv=None):
     arguments = sys.argv[1:] if argv is None else argv
     args = build_parser().parse_args(arguments)
     try:
+        if args.action == 'apply':
+            edid.validate_profile_use(args.profile, args.confirm_profile)
         if args.action in ('set', 'auto', 'apply'):
             root_required(arguments, Path(__file__).resolve().parents[2] / 'bin/screen-config')
         if hasattr(args, 'port'):
@@ -177,7 +184,8 @@ def main(argv=None):
         if args.action == 'list':
             list_outputs()
         elif args.action == 'profiles':
-            print('lontium-720: verified WKS/Lontium 720x720 board, ~60.004Hz; matching EDID required.')
+            for name, info in edid.PROFILES.items():
+                print(f'{name}: {info["description"]}')
         elif args.action == 'modes':
             output = outputs.outputs().get(connector_name(args.port), {})
             for mode in output.get('modes', []):
@@ -191,25 +199,48 @@ def main(argv=None):
                 actual = edid.raw_edid(args.port)
                 screen_id = edid.identity(actual)
                 profile = None
+                confirmed = False
                 if args.action == 'set':
                     if edid.identity(edid.visible_edid(args.port)) != screen_id:
                         raise UserError('Stale EDID override: run screen-config auto --port N before setting a mode.')
-                    result = outputs.set_mode(args.port, args.mode)
                     # Retain a managed compatibility override when saving a mode on it.
                     active_override = override_bytes(args.port)
-                    if active_override and edid.compatible(active_override):
-                        profile = edid.PROFILE
+                    if active_override:
+                        profile = edid.matching_profile(active_override)
+                    if args.save and profile and edid.PROFILES[profile]['confirmation_required']:
+                        saved = store.load()['ports'].get(str(args.port), {})
+                        confirmed = (saved.get('profile') == profile and saved.get('profile_confirmed') is True
+                                     and store.matches(saved, screen_id))
+                        if not confirmed:
+                            raise UserError('Save this profile through apply --confirm-profile --save '
+                                            'after checking its product guide, not through set --save.')
+                    result = outputs.set_mode(args.port, args.mode)
                 elif args.action == 'auto':
                     change_override(args.port, b'')
                     result = outputs.set_mode(args.port)
                 else:
-                    fixed = edid.corrected(actual)
-                    change_override(args.port, fixed)
-                    result = outputs.set_mode(args.port, '720x720@60')
                     profile = args.profile
+                    confirmed = args.confirm_profile
+                    fixed = edid.corrected(actual, profile)
+                    previous = override_bytes(args.port)
+                    # An earlier manual trial may already have applied these
+                    # exact bytes. Explicitly confirmed application can adopt
+                    # that identical correction, never an arbitrary override.
+                    if confirmed and previous == fixed:
+                        record_override(args.port, previous)
+                    try:
+                        change_override(args.port, fixed)
+                        result = outputs.set_mode(args.port, edid.PROFILES[profile]['mode'])
+                    except Exception:
+                        if owned_override(args.port, override_bytes(args.port)):
+                            change_override(args.port, previous)
+                        raise
                 if args.save:
-                    saved_update(args.port, None if args.action == 'auto' else {
-                        'identity': screen_id, 'mode': outputs.format_mode(result), 'profile': profile})
+                    item = None if args.action == 'auto' else {
+                        'identity': screen_id, 'mode': outputs.format_mode(result), 'profile': profile}
+                    if item is not None and profile and edid.PROFILES[profile]['confirmation_required']:
+                        item['profile_confirmed'] = confirmed
+                    saved_update(args.port, item)
                 print(f'Screen {args.port+1} | {connector_name(args.port)} | board HDMI{args.port}: '
                       f'{outputs.format_mode(result)}; ' + ('saved' if args.save else 'temporary'))
         return 0
