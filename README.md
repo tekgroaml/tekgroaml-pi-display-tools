@@ -26,7 +26,7 @@ Keep the graphical desktop logged in. Connect HDMI for video and a USB data cabl
 ```bash
 sudo bash scripts/install.sh
 screen-config list
-screen-config set --port 1 --mode 800x800@60 --save
+screen-config set --port 2 --mode 800x800@60 --save
 screen-test pattern
 screen-test touch
 screen-test tap-cycle
@@ -34,7 +34,7 @@ screen-test cycle --interval 5
 screen-test stop
 ```
 
-`--port 0` / `--screen 1` 对应 HDMI0；`--port 1` / `--screen 2` 对应 HDMI1。
+**统一编号1、2：** `--port 1` / `--screen 1` → `HDMI-A-1`（板子HDMI0）；`--port 2` / `--screen 2` → `HDMI-A-2`（板子HDMI1）。旧版`--port 0/1`需要更新，已保存配置保持兼容。See the [2.0 breaking change](CHANGELOG.md).
 
 程序不修改屏幕固件。显示参数保存在树莓派系统，颜色测试为桌面上的 layer-shell 全屏覆盖层。
 

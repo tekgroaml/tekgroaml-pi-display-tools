@@ -145,9 +145,9 @@ class PersistenceTests(unittest.TestCase):
 
 class CommandTests(unittest.TestCase):
     def test_config_contract(self):
-        args = config_parser().parse_args(['set', '--port', '1', '--mode', '800x800@60', '--save'])
-        self.assertEqual((args.port, args.mode, args.save), (1, '800x800@60', True))
-        args = config_parser().parse_args(['auto', '--port', '0'])
+        args = config_parser().parse_args(['set', '--port', '2', '--mode', '800x800@60', '--save'])
+        self.assertEqual((args.port, args.mode, args.save), (2, '800x800@60', True))
+        args = config_parser().parse_args(['auto', '--port', '1'])
         self.assertFalse(args.save)
         args = config_parser().parse_args(['apply', '--port', '1', '--profile', 'lontium-720'])
         self.assertEqual(args.profile, edid.PROFILE)

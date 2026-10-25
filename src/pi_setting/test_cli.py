@@ -16,7 +16,8 @@ def build_parser():
     commands = parser.add_subparsers(dest='action', required=True)
     for action in ('black', 'white', 'red', 'pattern', 'touch', 'tap-cycle', 'cycle', 'stop'):
         command = commands.add_parser(action)
-        command.add_argument('--screen', type=int, choices=(1, 2), help='1=HDMI0; 2=HDMI1; omitted=all')
+        command.add_argument('--screen', type=int, choices=(1, 2),
+                             help='1=HDMI-A-1 (board HDMI0); 2=HDMI-A-2 (board HDMI1); omitted=all')
         if action == 'cycle':
             command.add_argument('--interval', type=float, default=5)
     commands.add_parser('status')

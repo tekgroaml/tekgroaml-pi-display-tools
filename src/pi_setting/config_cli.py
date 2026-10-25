@@ -20,7 +20,8 @@ def build_parser():
     commands.add_parser('profiles', help='List verified compatibility profiles')
     for action in ('modes', 'set', 'auto', 'apply'):
         command = commands.add_parser(action)
-        command.add_argument('--port', type=int, choices=(0, 1), required=True)
+        command.add_argument('--port', type=int, choices=(1, 2), required=True,
+                             help='1=HDMI-A-1 (board HDMI0); 2=HDMI-A-2 (board HDMI1)')
         if action != 'modes':
             command.add_argument('--save', action='store_true', help='Persist for this port and this display identity')
         if action == 'set':
@@ -125,7 +126,7 @@ def list_outputs():
         except (OSError, UserError):
             connected, override = 'unknown', 'unavailable without sudo'
         active = next((m for m in output.get('modes', []) if m['current']), None)
-        print(f"Screen {port+1} | HDMI{port} | {connector_name(port)} | {connected}")
+        print(f"Screen {port+1} (--port {port+1} / --screen {port+1}) | {connector_name(port)} | board HDMI{port} | {connected}")
         print('  Name:', output.get('description', '(not exposed by compositor)'))
         print('  Enabled:', output.get('enabled', False), '| Mode:', outputs.format_mode(active) if active else 'none')
         print('  EDID override:', override)
@@ -167,6 +168,10 @@ def main(argv=None):
     try:
         if args.action in ('set', 'auto', 'apply'):
             root_required(arguments, Path(__file__).resolve().parents[2] / 'bin/screen-config')
+        if hasattr(args, 'port'):
+            # Public numbering follows HDMI-A-1/2 and screen-test. Keep the
+            # existing zero-based hardware/config keys unchanged internally.
+            args.port -= 1
         if args.action == 'list':
             list_outputs()
         elif args.action == 'profiles':
@@ -203,7 +208,8 @@ def main(argv=None):
                 if args.save:
                     saved_update(args.port, None if args.action == 'auto' else {
                         'identity': screen_id, 'mode': outputs.format_mode(result), 'profile': profile})
-                print(f'HDMI{args.port}: {outputs.format_mode(result)}; ' + ('saved' if args.save else 'temporary'))
+                print(f'Screen {args.port+1} | {connector_name(args.port)} | board HDMI{args.port}: '
+                      f'{outputs.format_mode(result)}; ' + ('saved' if args.save else 'temporary'))
         return 0
     except (UserError, OSError, ValueError, subprocess.TimeoutExpired) as error:
         print(f'screen-config: {error}', file=sys.stderr)
