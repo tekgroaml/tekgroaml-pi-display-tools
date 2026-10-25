@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.0 — 2026-10-25
+
+- Add a single `VERSION.json` release manifest for application, command and configuration versions.
+- Add `pi-setting version`, `check-update --source` and `upgrade --source`, plus `--version` on existing commands.
+- Compare numeric versions, skip unchanged releases, reject downgrades, require `--allow-major` for major upgrades, and validate configuration formats before installation.
+- Record installed version/content fingerprint and backups; stage application updates and restore previous application/configuration on installation failure.
+- Preserve supported existing settings, touch service state and test modes; test counters restart after an update.
+- No new configuration format: display, touch and runtime formats remain 1; command numbering stays 1/2.
+- Update checks compare a previously downloaded directory. They do not automatically query GitHub or download updates.
+
 ## 2.0.0 — 2026-10-25
 
 Unified public numbering with Linux connectors:

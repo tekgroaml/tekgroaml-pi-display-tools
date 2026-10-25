@@ -14,6 +14,16 @@ sudo bash scripts/install.sh
 
 Keep the graphical desktop logged in. Connect HDMI for video and a USB data cable for touch. Run test commands as the desktop user, not with sudo. The installer is limited to the tested Pi 4 / Bookworm 64-bit platform.
 
+## Version and upgrades / 版本与升级
+
+```bash
+pi-setting version
+pi-setting check-update --source ~/pi-setting
+sudo pi-setting upgrade --source ~/pi-setting
+```
+
+Checks compare the installed application with an already downloaded release; no network lookup or download is performed. Version 2.1 introduces this manager. To bootstrap an older installation, run the new release's `scripts/install.sh`. Same versions are skipped; use `--reinstall` for an explicit repair. Major upgrades require `--allow-major`, downgrades are rejected. See the [version guide](docs/05-版本与升级.md).
+
 ## Documentation / 文档
 
 先读文档，再安装：
@@ -22,6 +32,7 @@ Keep the graphical desktop logged in. Connect HDMI for video and a USB data cabl
 2. [上传安装与使用](docs/02-上传安装与使用.md)
 3. [验证记录](docs/03-验证记录.md)
 4. [触摸测试与双屏映射](docs/04-触摸测试与双屏映射.md)
+5. [版本管理与升级](docs/05-版本与升级.md)
 
 ```bash
 sudo bash scripts/install.sh

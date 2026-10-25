@@ -28,7 +28,7 @@ if saved.exists():
 PY
 fi
 rm -f /etc/systemd/system/pi-setting-boot.service /etc/xdg/autostart/pi-setting-restore.desktop
-for name in screen-config screen-test; do
+for name in screen-config screen-test pi-setting; do
     if [ "$(readlink "/usr/local/bin/$name" || true)" = "/opt/pi-setting/bin/$name" ]; then
         rm -f "/usr/local/bin/$name"
     fi
@@ -46,3 +46,4 @@ fi
 systemctl daemon-reload
 echo "Startup configuration removed. Code, settings and backups are retained."
 echo "Reboot to clear any runtime display override: sudo reboot"
+echo "To restore the same application version later, install with --reinstall."

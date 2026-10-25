@@ -9,10 +9,12 @@ import sys
 import time
 
 from .common import UserError, desktop_env
+from . import __version__
 
 
 def build_parser():
     parser = argparse.ArgumentParser(prog='screen-test', description='Full-screen HDMI color tests')
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     commands = parser.add_subparsers(dest='action', required=True)
     for action in ('black', 'white', 'red', 'pattern', 'touch', 'tap-cycle', 'cycle', 'stop'):
         command = commands.add_parser(action)

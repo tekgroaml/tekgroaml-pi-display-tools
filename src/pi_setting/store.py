@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import tempfile
 from contextlib import contextmanager
+from .versioning import RELEASE
 
 CONFIG = Path('/etc/pi-setting/config.json')
 STATE = Path('/var/lib/pi-setting')
@@ -12,9 +13,11 @@ STATE = Path('/var/lib/pi-setting')
 
 def load(path=CONFIG):
     if not path.exists():
-        return {'version': 1, 'ports': {}}
+        kind = 'runtime' if Path(path).name == 'runtime.json' else 'display'
+        return {'version': RELEASE.config_versions[kind], 'ports': {}}
     data = json.loads(path.read_text())
-    if data.get('version') != 1 or not isinstance(data.get('ports'), dict):
+    kind = 'runtime' if Path(path).name == 'runtime.json' else 'display'
+    if type(data.get('version')) is not int or data.get('version') != RELEASE.config_versions[kind] or not isinstance(data.get('ports'), dict):
         raise ValueError(f'Invalid configuration format: {path}')
     return data
 

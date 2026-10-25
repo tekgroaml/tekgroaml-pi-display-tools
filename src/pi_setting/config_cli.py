@@ -10,11 +10,13 @@ import sys
 import time
 
 from . import edid, outputs, store
+from . import __version__
 from .common import UserError, connector_name, root_required, run
 
 
 def build_parser():
     parser = argparse.ArgumentParser(prog='screen-config', description='Per-port Raspberry Pi HDMI configuration')
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     commands = parser.add_subparsers(dest='action', required=True)
     commands.add_parser('list', help='Show current output and saved configuration')
     commands.add_parser('profiles', help='List verified compatibility profiles')

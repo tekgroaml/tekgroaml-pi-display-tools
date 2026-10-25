@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import pwd
 import subprocess
+import sys
 import xml.etree.ElementTree as ET
 
 
@@ -24,8 +25,10 @@ def main():
     root = Path(__file__).resolve().parents[1]
     if not Path('/opt/pi-setting/src/pi_setting/touch_relay.py').exists():
         parser.error('Install or copy the updated project into /opt/pi-setting first.')
+    sys.path.insert(0, str(root/'src'))
+    from pi_setting.versioning import RELEASE
     from evdev import InputDevice, ecodes
-    config = {'version': 1, 'user': args.user, 'ports': {}}
+    config = {'version': RELEASE.config_versions['touch'], 'user': args.user, 'ports': {}}
     for port, name in enumerate((args.screen1_device, args.screen2_device)):
         source = InputDevice(name)
         try:

@@ -11,11 +11,12 @@ import sys
 import time
 
 from evdev import InputDevice, UInput, ecodes
+from .versioning import RELEASE
 
 
 def main():
     config = json.loads(Path('/etc/pi-setting/touch-map.json').read_text())
-    if config.get('version') != 1:
+    if type(config.get('version')) is not int or config.get('version') != RELEASE.config_versions['touch']:
         raise ValueError('Unsupported touch map configuration')
     selector = selectors.DefaultSelector()
     devices = {}
