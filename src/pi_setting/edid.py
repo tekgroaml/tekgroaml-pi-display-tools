@@ -10,19 +10,59 @@ from .common import UserError, connector_name
 ORIGINAL = bytes.fromhex('ac0dd05c20d047202e05250cd0d02200001e')
 EARLY = bytes.fromhex('ac0dd05c20d047202e06250cd0d02200001e')
 FIXED = bytes.fromhex('0e0fd05c20d047202e06250cd0d02200001e')
-PROFILE = 'lontium-720'
-STRIP_PROFILE = 'ltm-420x960-60'
+PROFILE = '4.0inch-720x720-60hz-wks-lontium-semi'
+STRIP_PROFILE = '6.2inch-420x960-60hz-ltm-zl480'
 STRIP_ORIGINAL = bytes.fromhex('f00aa47810c028303214040400804700001e')
 STRIP_FIXED = bytes.fromhex('a80ca47810c028303214040400804700001e')
 STRIP_SECOND = bytes.fromhex('5007e07810e0281032140404232000202020')
 PROFILES = {
     PROFILE: {'mode': '720x720@60', 'confirmation_required': False,
+              'customer_name': '4.0-inch 720x720 square touchscreen',
+              'customer_name_cn': '4.0英寸 720×720 方形触摸屏',
+              'size_inches': '4.0', 'resolution': '720x720', 'touch': True,
+              'driver_label': 'WKS / Lontium Semi', 'driver_slug': 'wks-lontium-semi',
+              'reported': {'manufacturer_product_hex': '5d734600', 'edid_bytes': 128,
+                           'mode': '720x720', 'pixel_clock_mhz': 35.0, 'refresh_hz': 54.492349,
+                           'horizontal_front_sync_back': [46, 5, 41],
+                           'vertical_front_sync_back': [50, 5, 16]},
+              'repaired': {'mode': '720x720', 'pixel_clock_mhz': 38.54, 'refresh_hz': 60.003861,
+                           'horizontal_front_sync_back': [46, 6, 40],
+                           'vertical_front_sync_back': [50, 5, 16]},
+              'problem': 'No accepted HDMI mode on Pi 4; picture flicker after only fixing odd horizontal sync.',
+              'scope': 'Validated touch sample only; actual manufacturer part number is not inferred from EDID.',
               'description': 'WKS/Lontium 720x720 timing correction; ~60.004Hz; EDID match required.'},
     STRIP_PROFILE: {'mode': '420x960@60', 'confirmation_required': True,
+                   'customer_name': '6.2-inch 420x960 strip touchscreen (verified input mode)',
+                   'customer_name_cn': '6.2英寸 420×960 长条触摸屏（已验证输入模式）',
+                   'size_inches': '6.2', 'resolution': '420x960', 'touch': True,
+                   'driver_label': 'LTM / ZL480', 'driver_slug': 'ltm-zl480',
+                   'reported': {'manufacturer_product_hex': '328d5e04', 'edid_bytes': 256,
+                                'mode': '420x960', 'pixel_clock_mhz': 28.0, 'refresh_hz': 51.851852,
+                                'horizontal_front_sync_back': [50, 20, 50],
+                                'vertical_front_sync_back': [16, 4, 20]},
+                   'repaired': {'mode': '420x960', 'pixel_clock_mhz': 32.4, 'refresh_hz': 60.0,
+                                'horizontal_front_sync_back': [50, 20, 50],
+                                'vertical_front_sync_back': [16, 4, 20]},
+                   'problem': 'Touch sample flicker/incomplete image with original ~51.85Hz timing.',
+                   'scope': 'Native panel resolution/part number unconfirmed. Non-touch sample with identical EDID remains unresolved.',
                    'description': 'Known 6.2-inch touch sample: 28 -> 32.4MHz, 420x960@60; '
                                   'same EDID also appeared on an unresolved non-touch sample. '
                                   'Requires --confirm-profile; no automatic model identification.'},
 }
+PROFILE_ALIASES = {'lontium-720': PROFILE, 'ltm-420x960-60': STRIP_PROFILE}
+
+
+def canonical_profile(name):
+    if name in PROFILES:
+        return name
+    if name in PROFILE_ALIASES:
+        return PROFILE_ALIASES[name]
+    raise UserError(f'Unknown compatibility profile: {name}')
+
+
+def profile_names(name):
+    canonical = canonical_profile(name)
+    return (canonical, *(alias for alias, target in PROFILE_ALIASES.items() if target == canonical))
 
 
 def valid(data):
@@ -40,6 +80,10 @@ def compatible(data):
 
 
 def profile_matches(data, profile):
+    try:
+        profile = canonical_profile(profile)
+    except UserError:
+        return False
     if profile == PROFILE:
         return compatible(data)
     if profile != STRIP_PROFILE or not valid(data) or len(data) != 256:
@@ -56,12 +100,12 @@ def matching_profile(data):
 
 
 def validate_profile_use(profile, confirmed=False):
-    if profile not in PROFILES:
-        raise UserError(f'Unknown compatibility profile: {profile}')
+    profile = canonical_profile(profile)
     if PROFILES[profile]['confirmation_required'] and confirmed is not True:
         raise UserError(f'{profile} cannot identify touch/non-touch variants from EDID. '
                         'Read the product guide and explicitly add --confirm-profile; '
                         'the non-touch sample was NOT fixed by this timing.')
+    return profile
 
 
 def normalized(data):
@@ -81,6 +125,7 @@ def identity(data):
 
 
 def corrected(data, profile=PROFILE):
+    profile = canonical_profile(profile)
     if not profile_matches(data, profile):
         raise UserError(f'This screen does not match the verified {profile} controller/timing profile.')
     b = bytearray(data)

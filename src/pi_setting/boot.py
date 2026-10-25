@@ -13,7 +13,7 @@ def main():
         port = int(key)
         profile = item['profile']
         try:
-            edid.validate_profile_use(profile, item.get('profile_confirmed', False))
+            profile = edid.validate_profile_use(profile, item.get('profile_confirmed', False))
         except Exception as error:
             failed = True
             print(f'Screen {port+1}: saved profile skipped: {error}', file=sys.stderr)

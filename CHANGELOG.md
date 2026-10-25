@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.0 — 2026-10-25
+
+- Name repair profiles and convenience `.sh` entry points by size, resolution, nominal refresh and reported driver label.
+- Add customer-facing device names, original driver/timing data, repaired timing data, issue summaries and validation limits to the profile registry.
+- Add `screen-config profiles --json` and human-readable device cards.
+- Preserve `lontium-720` and `ltm-420x960-60` as aliases, including existing saved boot profiles and explicit acknowledgment requirements. New saves use canonical names.
+- Keep EDID matching and timing corrections unchanged. Customer labels and script IDs do not identify a physical panel or distinguish devices reporting identical EDID.
+- Add consistent product cards, a naming policy and a template in the support repository; list the unresolved non-touch variant separately without a repair script.
+
 ## 2.2.0 — 2026-10-25
 
 - Add the guarded `ltm-420x960-60` profile: keep the known 420x960 timing and change pixel clock from 28MHz to 32.4MHz for 60Hz.

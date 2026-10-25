@@ -14,12 +14,20 @@ from . import __version__
 from .common import UserError, connector_name, root_required, run
 
 
+def profile_argument(value):
+    try:
+        return edid.canonical_profile(value)
+    except UserError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
+
+
 def build_parser():
     parser = argparse.ArgumentParser(prog='screen-config', description='Per-port Raspberry Pi HDMI configuration')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     commands = parser.add_subparsers(dest='action', required=True)
     commands.add_parser('list', help='Show current output and saved configuration')
-    commands.add_parser('profiles', help='List verified compatibility profiles')
+    profiles = commands.add_parser('profiles', help='List customer devices, reported/repaired data and script IDs')
+    profiles.add_argument('--json', action='store_true', help='Output structured profile cards and legacy aliases')
     for action in ('modes', 'set', 'auto', 'apply'):
         command = commands.add_parser(action)
         command.add_argument('--port', type=int, choices=(1, 2), required=True,
@@ -29,7 +37,8 @@ def build_parser():
         if action == 'set':
             command.add_argument('--mode', required=True, help='Example: 800x800@60')
         if action == 'apply':
-            command.add_argument('--profile', choices=tuple(edid.PROFILES), required=True)
+            command.add_argument('--profile', type=profile_argument, choices=tuple(edid.PROFILES), required=True,
+                                 help='Size-resolution-refresh-driver ID; legacy profile names remain accepted')
             command.add_argument('--confirm-profile', action='store_true',
                                  help='Acknowledge the selected profile product limits; does not bypass EDID checks')
     restore = commands.add_parser('restore', help='Restore saved modes in the logged-in desktop')
@@ -184,8 +193,24 @@ def main(argv=None):
         if args.action == 'list':
             list_outputs()
         elif args.action == 'profiles':
-            for name, info in edid.PROFILES.items():
-                print(f'{name}: {info["description"]}')
+            if args.json:
+                print(json.dumps({'profiles': edid.PROFILES, 'aliases': edid.PROFILE_ALIASES}, indent=2))
+            else:
+                for name, info in edid.PROFILES.items():
+                    original, fixed = info['reported'], info['repaired']
+                    print(f'{info["customer_name_cn"]} / {info["customer_name"]}')
+                    print(f'  Script/profile ID: {name}')
+                    print(f'  Driver label: {info["driver_label"]}')
+                    print(f'  EDID manufacturer/product: {original["manufacturer_product_hex"]}; '
+                          f'{original["edid_bytes"]} bytes')
+                    print(f'  Reported: {original["mode"]} @ {original["refresh_hz"]:.6f}Hz; '
+                          f'{original["pixel_clock_mhz"]}MHz')
+                    print(f'  Repaired: {fixed["mode"]} @ {fixed["refresh_hz"]:.6f}Hz; '
+                          f'{fixed["pixel_clock_mhz"]}MHz')
+                    print(f'  Issue: {info["problem"]}')
+                    print(f'  Scope: {info["scope"]}')
+                    print(f'  Legacy aliases: {", ".join(edid.profile_names(name)[1:])}')
+                    print(f'  Confirmation required: {info["confirmation_required"]}')
         elif args.action == 'modes':
             output = outputs.outputs().get(connector_name(args.port), {})
             for mode in output.get('modes', []):
@@ -209,7 +234,7 @@ def main(argv=None):
                         profile = edid.matching_profile(active_override)
                     if args.save and profile and edid.PROFILES[profile]['confirmation_required']:
                         saved = store.load()['ports'].get(str(args.port), {})
-                        confirmed = (saved.get('profile') == profile and saved.get('profile_confirmed') is True
+                        confirmed = (saved.get('profile') in edid.profile_names(profile) and saved.get('profile_confirmed') is True
                                      and store.matches(saved, screen_id))
                         if not confirmed:
                             raise UserError('Save this profile through apply --confirm-profile --save '

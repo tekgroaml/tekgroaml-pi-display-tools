@@ -34,6 +34,7 @@ Checks compare the installed application with an already downloaded release; no 
 4. [触摸测试与双屏映射](docs/04-触摸测试与双屏映射.md)
 5. [版本管理与升级](docs/05-版本与升级.md)
 6. [6.2英寸长条触摸样机兼容档及限制](docs/06-6.2英寸长条屏.md)
+7. [产品条目、驱动上报数据与脚本命名](docs/07-设备条目与脚本命名.md)
 
 ```bash
 sudo bash scripts/install.sh
@@ -49,6 +50,8 @@ screen-test stop
 **统一编号1、2：** `--port 1` / `--screen 1` → `HDMI-A-1`（板子HDMI0）；`--port 2` / `--screen 2` → `HDMI-A-2`（板子HDMI1）。旧版`--port 0/1`需要更新，已保存配置保持兼容。See the [2.0 breaking change](CHANGELOG.md).
 
 程序不修改屏幕固件。显示参数保存在树莓派系统，颜色测试为桌面上的 layer-shell 全屏覆盖层。
+
+2.3.0起使用“尺寸＋分辨率＋刷新率＋驱动标识”命名修复ID及`scripts/profiles/*.sh`入口；`screen-config profiles`显示产品卡片，`--json`输出结构化信息。旧名`lontium-720`与`ltm-420x960-60`仍可使用，已保存设置继续兼容。
 
 For optional mapping of two identical-name touch controllers, see the touch guide. USB-to-screen pairing must be confirmed on each host; no developer machine mapping is supplied.
 
