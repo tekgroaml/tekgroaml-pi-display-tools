@@ -37,7 +37,10 @@ class TapCycle:
 
 
 class TouchTest:
-    def __init__(self):
+    def __init__(self, shape='round'):
+        if shape not in ('round', 'rect'):
+            raise ValueError('Touch shape must be round or rect')
+        self.shape = shape
         self.count = 0
         self.hits = set()
         self.last = None
@@ -45,6 +48,18 @@ class TouchTest:
         self.active = {}
         self.input_counts = {'native_touch': 0, 'pointer_or_emulated': 0}
         self.last_input = None
+
+    def geometry(self, width, height):
+        """Pixel centers and radius shared by rendering and hit detection."""
+        radius = min(width, height) * (.08 if self.shape == 'rect' else .06)
+        if self.shape == 'round':
+            centers = tuple((x*width, y*height) for x, y in TARGETS)
+        else:
+            inset = radius * 1.8
+            centers = ((width/2, height/2), (inset, inset),
+                       (width-inset, inset), (width-inset, height-inset),
+                       (inset, height-inset))
+        return centers, radius
 
     @staticmethod
     def reset_bounds(width, height):
@@ -54,13 +69,14 @@ class TouchTest:
         if kind == 'begin':
             bx, by, bw, bh = self.reset_bounds(width, height)
             if bx <= x <= bx+bw and by <= y <= by+bh:
-                self.__init__()
+                self.__init__(self.shape)
                 return
             self.count += 1
             self.input_counts[source] += 1
             self.last_input = source
-            for index, (tx, ty) in enumerate(TARGETS):
-                if math.hypot(x-tx*width, y-ty*height) <= min(width, height)*.06:
+            centers, radius = self.geometry(width, height)
+            for index, (tx, ty) in enumerate(centers):
+                if math.hypot(x-tx, y-ty) <= radius:
                     self.hits.add(index)
             self.trails.append([(x, y)])
             self.active[sequence] = self.trails[-1]
@@ -74,6 +90,6 @@ class TouchTest:
         self.trails[:] = self.trails[-40:]
 
     def summary(self):
-        return {'touches': self.count, 'targets_hit': len(self.hits), 'targets_total': len(TARGETS),
+        return {'shape': self.shape, 'touches': self.count, 'targets_hit': len(self.hits), 'targets_total': len(TARGETS),
                 'last_position': list(self.last) if self.last else None,
                 'input_counts': dict(self.input_counts), 'last_input': self.last_input}

@@ -49,3 +49,36 @@ class TouchTests(unittest.TestCase):
         state.event('begin', 'pointer', 240, 240, 480, 480, 'pointer_or_emulated')
         self.assertEqual(state.summary()['input_counts'], {'native_touch': 0, 'pointer_or_emulated': 1})
         self.assertEqual(state.summary()['last_input'], 'pointer_or_emulated')
+
+    def test_rect_targets_fit_strip_square_and_landscape_panels(self):
+        for width, height in ((420, 960), (480, 1280), (720, 720), (960, 420)):
+            state = TouchTest('rect')
+            centers, radius = state.geometry(width, height)
+            self.assertEqual(centers[0], (width/2, height/2))
+            for index, (x, y) in enumerate(centers):
+                self.assertTrue(radius <= x <= width-radius)
+                self.assertTrue(radius <= y <= height-radius)
+                state.event('begin', index, x, y, width, height)
+                state.event('end', index, x, y, width, height)
+            self.assertEqual(state.hits, set(range(5)))
+            self.assertEqual(state.summary()['shape'], 'rect')
+
+    def test_rect_hit_boundary_and_reset_keep_layout(self):
+        state = TouchTest('rect')
+        centers, radius = state.geometry(420, 960)
+        x, y = centers[0]
+        state.event('begin', 'outside', x+radius+1, y, 420, 960)
+        self.assertFalse(state.hits)
+        state.event('begin', 'inside', x+radius-1, y, 420, 960)
+        self.assertEqual(state.hits, {0})
+        bx, by, bw, bh = state.reset_bounds(420, 960)
+        state.event('begin', 'reset', bx+bw/2, by+bh/2, 420, 960)
+        self.assertEqual(state.shape, 'rect')
+        self.assertFalse(state.hits)
+        self.assertEqual(state.count, 0)
+
+    def test_rect_and_round_command_choices(self):
+        parser = build_parser()
+        self.assertEqual(parser.parse_args(['touch']).shape, 'round')
+        self.assertEqual(parser.parse_args(['touch', '--screen', '2', '--shape', 'rect']).shape, 'rect')
+        self.assertEqual(parser.parse_args(['touch', '--shape', 'round']).shape, 'round')

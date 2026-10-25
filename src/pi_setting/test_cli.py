@@ -20,6 +20,9 @@ def build_parser():
         command = commands.add_parser(action)
         command.add_argument('--screen', type=int, choices=(1, 2),
                              help='1=HDMI-A-1 (board HDMI0); 2=HDMI-A-2 (board HDMI1); omitted=all')
+        if action == 'touch':
+            command.add_argument('--shape', choices=('round', 'rect'), default='round',
+                                 help='round=center/cardinal targets; rect=center/corner targets')
         if action == 'cycle':
             command.add_argument('--interval', type=float, default=5)
     commands.add_parser('status')
@@ -84,6 +87,8 @@ def main(argv=None):
         message = {'action': args.action}
         if hasattr(args, 'screen'):
             message['screen'] = args.screen
+        if args.action == 'touch':
+            message['shape'] = args.shape
         if args.action == 'cycle':
             message['interval'] = args.interval
         response = request(path, message)

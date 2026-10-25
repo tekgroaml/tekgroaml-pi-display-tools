@@ -46,7 +46,7 @@ class TestWindow(Gtk.Window):
     def __init__(self, monitor, port, output, state):
         super().__init__(title=f'Pi screen test HDMI{port}')
         self.port, self.output, self.state = port, output, state
-        self.touch = TouchTest()
+        self.touch = TouchTest(state.get('shape', 'round'))
         self.tap_cycle = state.setdefault('_tap_cycle', TapCycle())
         self.set_decorated(False)
         self.set_accept_focus(False)
@@ -128,12 +128,12 @@ class TestWindow(Gtk.Window):
             extent = context.text_extents(text)
             context.move_to(x-extent[2]/2-extent[0], y)
             context.show_text(text)
-        radius = min(width, height)*.06
-        for index, (tx, ty) in enumerate(TARGETS):
+        centers, radius = self.touch.geometry(width, height)
+        for index, (tx, ty) in enumerate(centers):
             context.set_source_rgb(*((.1, .8, .3) if index in self.touch.hits else (.9, .55, .1)))
-            context.arc(tx*width, ty*height, radius, 0, math.tau)
+            context.arc(tx, ty, radius, 0, math.tau)
             context.fill()
-            label(str(index+1), tx*width, ty*height+radius*.3, radius, (0, 0, 0))
+            label(str(index+1), tx, ty+radius*.3, radius, (0, 0, 0))
         size = max(12, min(width, height)*.032)
         label(f'SCREEN {self.port+1} / HDMI{self.port}', width*.5, height*.32, size)
         label('Tap targets; slide to draw', width*.5, height*.37, size*.85)
@@ -278,6 +278,9 @@ class App:
                     for p, s in self.states.items()}}
         if action not in (*COLORS, 'pattern', 'touch', 'tap-cycle', 'cycle', 'stop'):
             raise UserError('Unknown test command')
+        shape = message.get('shape', 'round')
+        if action == 'touch' and shape not in ('round', 'rect'):
+            raise UserError('Touch shape must be round or rect')
         screen = message.get('screen')
         if screen is not None and screen not in (1, 2):
             raise UserError('Screen must be 1 or 2')
@@ -305,6 +308,8 @@ class App:
         for port in ports:
             self.states[port] = {'action': action, 'started': time.monotonic(),
                                  'interval': None if action == 'tap-cycle' else interval}
+            if action == 'touch':
+                self.states[port]['shape'] = shape
             if action == 'tap-cycle':
                 self.states[port]['_tap_cycle'] = TapCycle()
         self.rebuild(available)
@@ -325,7 +330,7 @@ class App:
                 previous = self.windows.get(port)
                 if previous is not None and previous.output == output:
                     if previous.state is not state:
-                        previous.touch = TouchTest()
+                        previous.touch = TouchTest(state.get('shape', 'round'))
                         previous.tap_cycle = state.setdefault('_tap_cycle', TapCycle())
                         previous.state = state
                         previous.queue_draw()

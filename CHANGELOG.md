@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.2
+
+- Add `screen-test touch --shape rect` for square and rectangular panels, with larger targets at the center and four corners. `--shape round` preserves the existing layout and remains the default.
+- Share target geometry between drawing and hit detection; report shape in touch status. Layout selection does not calibrate or transform input coordinates.
+
 ## 2.3.1
 
 - Generate persistent USB-TOUCH-1/2 device links from explicitly confirmed HDMI/touch pairs. Reconfiguration updates links when pairs are exchanged; uninstall removes labels.

@@ -56,3 +56,5 @@ screen-test stop
 For optional mapping of two identical-name touch controllers, see the touch guide. USB-to-screen pairing must be confirmed on each host; no developer machine mapping is supplied.
 
 发布者请阅读[GitHub发布说明](PUBLISHING.md)。下载者无需使用开发者的账号、IP、绝对路径或USB插口编号。Customer troubleshooting: [TEKGROAML Display Support](https://github.com/tekgroaml/tekgroaml-display-support).
+
+触摸测试布局：`screen-test touch --shape rect`用于方屏和长条屏（中心＋四角）；`--shape round`保留圆屏布局，默认不变。布局不执行触摸校准，详见[触摸测试说明](docs/04-触摸测试与双屏映射.md)。
