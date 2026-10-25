@@ -27,6 +27,13 @@ if saved.exists():
         tree.write(rc,encoding='utf-8',xml_declaration=True)
 PY
 fi
+rm -f /etc/udev/rules.d/99-pi-setting-usb-touch-labels.rules
+for number in 1 2; do
+    if [ -L "/dev/input/USB-TOUCH-$number" ]; then
+        rm -f "/dev/input/USB-TOUCH-$number"
+    fi
+done
+udevadm control --reload-rules
 rm -f /etc/systemd/system/pi-setting-boot.service /etc/xdg/autostart/pi-setting-restore.desktop
 for name in screen-config screen-test pi-setting; do
     if [ "$(readlink "/usr/local/bin/$name" || true)" = "/opt/pi-setting/bin/$name" ]; then

@@ -13,8 +13,8 @@ import xml.etree.ElementTree as ET
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--screen1-device', required=True, help='Current /dev/input/eventN for HDMI0')
-    parser.add_argument('--screen2-device', required=True, help='Current /dev/input/eventN for HDMI1')
+    parser.add_argument('--screen1-device', required=True, help='Confirmed raw touch device for screen 1 / HDMI-A-1 (board HDMI0)')
+    parser.add_argument('--screen2-device', required=True, help='Confirmed raw touch device for screen 2 / HDMI-A-2 (board HDMI1)')
     parser.add_argument('--user', required=True, help='Graphical desktop user')
     args = parser.parse_args()
     if os.getuid() != 0:
@@ -27,6 +27,7 @@ def main():
         parser.error('Install or copy the updated project into /opt/pi-setting first.')
     sys.path.insert(0, str(root/'src'))
     from pi_setting.versioning import RELEASE
+    from pi_setting.touch_labels import build_rules
     from evdev import InputDevice, ecodes
     config = {'version': RELEASE.config_versions['touch'], 'user': args.user, 'ports': {}}
     for port, name in enumerate((args.screen1_device, args.screen2_device)):
@@ -44,6 +45,8 @@ def main():
             source.close()
     if config['ports']['0']['by_path'] == config['ports']['1']['by_path']:
         parser.error('Each screen requires a different touch controller.')
+    label_rules = build_rules(config['ports'])
+    rule = Path('/etc/udev/rules.d/99-pi-setting-usb-touch-labels.rules')
     rc = Path(user.pw_dir)/'.config/labwc/rc.xml'
     if rc.is_symlink():
         parser.error('Please resolve the symlinked labwc configuration before applying this optional setup.')
@@ -67,12 +70,34 @@ def main():
         (backup/'previous-touch-map.json').write_bytes(saved.read_bytes())
     if rc.exists():
         (backup/'labwc-rc.xml').write_bytes(rc.read_bytes())
+    if rule.exists():
+        (backup/rule.name).write_bytes(rule.read_bytes())
     rc.parent.mkdir(parents=True, exist_ok=True)
     tree.write(rc, encoding='utf-8', xml_declaration=True)
     os.chown(rc, user.pw_uid, user.pw_gid)
     os.chown(rc.parent, user.pw_uid, user.pw_gid)
     saved.parent.mkdir(parents=True, exist_ok=True)
     saved.write_text(json.dumps(config, indent=2)+'\n')
+    rule.parent.mkdir(parents=True, exist_ok=True)
+    rule.write_text(label_rules)
+    subprocess.run(['udevadm', 'control', '--reload-rules'], check=True)
+    # Remove old labels before retriggering: swaps must not retain stale links.
+    for number in (1, 2):
+        alias = Path(f'/dev/input/USB-TOUCH-{number}')
+        if alias.is_symlink():
+            alias.unlink()
+    for entry in config['ports'].values():
+        event = (Path('/dev/input/by-path')/entry['by_path']).resolve().name
+        subprocess.run(['udevadm', 'trigger', '--action=change',
+                        f'/sys/class/input/{event}'], check=True)
+    subprocess.run(['udevadm', 'settle'], check=True)
+    for port, entry in config['ports'].items():
+        number = int(port)+1
+        alias = Path(f'/dev/input/USB-TOUCH-{number}')
+        source = Path('/dev/input/by-path')/entry['by_path']
+        if not alias.exists() or alias.resolve() != source.resolve():
+            raise RuntimeError(f'USB label verification failed: {alias}')
+        print(f'{alias} -> {entry["by_path"]} -> HDMI-A-{number}')
     unit = Path('/etc/systemd/system/pi-setting-touch.service')
     unit.write_bytes((root/'systemd/pi-setting-touch.service').read_bytes())
     subprocess.run(['systemctl', 'daemon-reload'], check=True)

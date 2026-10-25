@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.1
+
+- Generate persistent USB-TOUCH-1/2 device links from explicitly confirmed HDMI/touch pairs. Reconfiguration updates links when pairs are exchanged; uninstall removes labels.
+- Document fixed cable pairs and reversed touch mapping; USB port numbers never imply HDMI numbers.
+
 ## 2.3.0 — 2026-10-25
 
 - Name repair profiles and convenience `.sh` entry points by size, resolution, nominal refresh and reported driver label.
